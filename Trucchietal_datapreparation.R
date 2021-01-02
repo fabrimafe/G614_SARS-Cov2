@@ -1,4 +1,4 @@
-#R code to replicate results in Trucchi et al.,2021, MBE
+#R code to replicate results in Trucchi et al.,2021, MBE, Population dynamics and structural effects at short and long range support the hypothesis of the selective advantage of the G614 SARS-Cov2 spike variant
 #R versions 4.0.3
 
 ######################
@@ -20,15 +20,17 @@ library(corrplot)
 
 ############## align and extract polymorphisms ##############
 
+#These steps can be avoided by dowloading directly all.aln.varfreqmin0.005.txt from https://doi.org/10.6084/m9.figshare.13498428.v1
+
 #Alignment to the Wuhan reference sequence with mafft v7.471
 system("mafft --keeplength --addfragments allSeq.fa ref_wuhan.fa > allSeq.aln.fa")
 
-#Convert the fasta interleaved alignment to nexus with Aliview 1.26 (GUI). The file is allSeq.aln.nex
+#Convert the fasta interleaved alignment to nexus with Aliview 1.26 (GUI). The file is allSeq.aln.nex and can be found on https://doi.org/10.6084/m9.figshare.13493178.v1
 
 #Selection of the variants based on their min freq in the alignment
-system("python3 variants_in_alignment.py -i allSeq.aln.nex -d <Date of the most recent sequence as YYYY-MM-DD> -f 0.005")
+system("python3 variants_in_alignment.py -i allSeq.aln.nex -d 2020-09-18 -f 0.005")
 
-#output is a file called all.aln.varfreqmin0.005.txt
+#the output is a file called all.aln.varfreqmin0.005.txt, which can be downloaded from https://doi.org/10.6084/m9.figshare.13498428.v1
 
 ############## import data ##############
 seqall.metadata<-read.table("all.aln.varfreqmin0.005.txt",header=TRUE,stringsAsFactors=FALSE)
@@ -38,7 +40,8 @@ seqall.metadata$state[seqall.metadata$country=="USA"]<-paste0("USA-",seqall.meta
 max(seqall.metadata$daysbefore1809) #269 -> data already in December -> starting data is 1st December 2019 -> 6*31+29+2*30+18 #293
 seqall.metadata$day<-293-seqall.metadata$daysbefore1809
 
-## function to create fasta containing only informative sites
+## Function to create fasta containing only informative sites. This allows you to download only the polymorphisms file all.aln.varfreqmin0.005.txt.
+## If the original fasta files are available, steps including the function table2fa can be skipped.
 pos_cols<-grep("^X",names(seqall.metadata))
 table2fa<-function(mydata,pos_cols,prefix="X",fileoutput="output.fa")
 {
@@ -260,8 +263,9 @@ Ainv.phyloall<-inverseA(phylotree,nodes="TIPS")$Ainv
 seqall_model<-seqall.metadata[seqall.metadata$state %in% filter0,]
 seqall_model$tips<-seqall_model$state
 
+#polymorphism 85 is G614. However, the same analyses can be performed for all variants
 res_l<-list()
-i=85
+i=85 
 seqall_model$type<-as.character(seqall_model[[i]])
 seqall_model$type[seqall_model$type!="a" & seqall_model$type!="c" & seqall_model$type!="g" & seqall_model$type!="t"]<-NA
 var1<-"g"
@@ -402,9 +406,7 @@ table2fa(xdata.G,pos_cols,fileoutput="seqG.fa")
 
 covariance_mat<-covariance_alleles_treemix(xdata.G,pos_cols)
 corr_matrix<-cov2cor(covariance_mat)
-pdf("similarity_matrix_DG_cov.pdf")
 corrplot(corr_matrix,method="shade",order="AOE",tl.cex=0.3,shade.col=NA,tl.col="black",cl.pos="n")
-dev.off()
 
 
 seqall = read.dna('seqG.fa', format='fasta')
